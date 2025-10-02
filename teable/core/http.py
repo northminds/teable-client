@@ -11,7 +11,8 @@ from ..exceptions import (
     APIError,
     AuthenticationError,
     RateLimitError,
-    ResourceNotFoundError
+    ResourceNotFoundError,
+    ValidationError,
 )
 
 class TeableHttpClient:
@@ -194,24 +195,17 @@ class TeableHttpClient:
                 return response.json()
                 
             except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 401:
-                    raise AuthenticationError(
-                        "Authentication failed",
-                        e.response.status_code
-                    )
-                elif e.response.status_code == 404:
-                    raise ResourceNotFoundError(
-                        "Resource not found",
-                        endpoint,
-                        str(kwargs.get('params', {})),
-                        e.response.status_code
-                    )
+                status = e.response.status_code
+                body = e.response.text
+                if status == 401:
+                    raise AuthenticationError("Authentication failed", status)
+                elif status == 404:
+                    res_type, res_id = self._infer_resource_from_endpoint(method, endpoint)
+                    raise ResourceNotFoundError("Resource not found", res_type, res_id, status)
+                elif status == 422:
+                    raise ValidationError(body)
                 else:
-                    raise APIError(
-                        f"HTTP {e.response.status_code}: {e.response.text}",
-                        e.response.status_code,
-                        e.response.text
-                    )
+                    raise APIError(f"HTTP {status}: {body}", status, body)
                     
             except requests.exceptions.RequestException as e:
                 raise APIError(str(e))
@@ -232,6 +226,18 @@ class TeableHttpClient:
                 429,
                 reset_time=reset_time
             )
+    
+    def _infer_resource_from_endpoint(self, method: str, endpoint: str) -> tuple[str, str]:
+        """Infer resource type and ID from endpoint path."""
+        path = endpoint.lstrip("/")
+        parts = path.split("/")
+        if "record" in parts:
+            return "record", parts[-1]
+        if "table" in parts:
+            return "table", parts[-1]
+        if "base" in parts:
+            return "base", parts[-1]
+        return "resource", path
             
 class Config:
     """Configuration for the HTTP client."""

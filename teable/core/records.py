@@ -8,7 +8,7 @@ import json
 import mimetypes
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from ..exceptions import ValidationError
+from ..exceptions import ValidationError, APIError, ResourceNotFoundError
 from ..models.record import Record, RecordBatch, RecordStatus
 from ..models.history import HistoryResponse
 from .http import TeableHttpClient
@@ -308,11 +308,16 @@ class RecordManager:
         if order:
             data['order'] = order
             
-        return self._http.request(
-            'PATCH',
-            f"/table/{table_id}/record/{record_id}",
-            json=data
-        )
+        try:
+            return self._http.request(
+                'PATCH',
+                f"/table/{table_id}/record/{record_id}",
+                json=data
+            )
+        except APIError as e:
+            if e.status_code == 404:
+                raise ResourceNotFoundError("Record not found", "record", record_id, 404)
+            raise
         
     def delete_record(
         self,
@@ -380,13 +385,20 @@ class RecordManager:
         if order:
             data['order'] = order
         
-        response = self._http.request(
-            'POST',
-            f"/table/{table_id}/record",
-            json=data
-        )
-        
-        return RecordBatch.from_api_response(response, len(records))
+        try:
+            response = self._http.request(
+                'POST',
+                f"/table/{table_id}/record",
+                json=data
+            )
+            return RecordBatch.from_api_response(response, len(records))
+        except (ValidationError, APIError) as e:
+            status = getattr(e, "status_code", None)
+            if isinstance(e, ValidationError) or status in (400, 422):
+                error_text = getattr(e, "response_body", str(e))
+                failed = [{"data": r, "error": error_text} for r in records]
+                return RecordBatch(successful=[], failed=failed, total=len(records))
+            raise
         
     def batch_update_records(
         self,
