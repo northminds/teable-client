@@ -58,11 +58,11 @@ class TeableHttpClient:
                 max_retries=max_retries,
                 retry_delay=retry_delay
             )
-        
+
         self.session = requests.Session()
-        if api_key:
+        if self.config.api_key:  # ✅ FIX: Check self.config.api_key instead
             self.session.headers.update({
-                'Authorization': f'Bearer {api_key}'
+                'Authorization': f'Bearer {self.config.api_key}'
             })
             
         self._rate_limit = None
