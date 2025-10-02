@@ -326,10 +326,12 @@ class TableManager:
         Raises:
             APIError: If the deletion fails
         """
+        # Build params as list of tuples for multiple recordIds parameters
+        params = [('recordIds', record_id) for record_id in record_ids]
         self._http.request(
             'DELETE',
             f"/table/{table_id}/record",
-            params={'recordIds': json.dumps(record_ids)}  # recordIds'i json string olarak gönder
+            params=params
         )
         return True
         
