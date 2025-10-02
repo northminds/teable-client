@@ -230,6 +230,71 @@ class TableManager:
         )
         return Record.from_api_response(response['records'][0])
 
+    def update_record(
+        self,
+        table_id: str,
+        record_id: str,
+        fields: Dict[str, Any],
+        field_key_type: str = 'name',
+        typecast: bool = False,
+        order: Optional[Dict[str, Any]] = None
+    ) -> Record:
+        """
+        Update a single record.
+        
+        Args:
+            table_id: ID of the table
+            record_id: ID of the record to update
+            fields: New field values
+            field_key_type: Key type for fields ('id' or 'name')
+            typecast: Enable automatic type conversion
+            order: Optional record ordering configuration
+            
+        Returns:
+            Record: Updated record
+            
+        Raises:
+            APIError: If the update fails
+        """
+        data = {
+            'fieldKeyType': field_key_type,
+            'typecast': typecast,
+            'record': {'fields': fields}
+        }
+        if order:
+            data['order'] = order
+            
+        response = self._http.request(
+            'PATCH',
+            f"/table/{table_id}/record/{record_id}",
+            json=data
+        )
+        return Record.from_api_response(response)
+
+    def delete_record(
+        self,
+        table_id: str,
+        record_id: str
+    ) -> bool:
+        """
+        Delete a single record.
+        
+        Args:
+            table_id: ID of the table
+            record_id: ID of the record to delete
+            
+        Returns:
+            bool: True if deletion successful
+            
+        Raises:
+            APIError: If the deletion fails
+        """
+        self._http.request(
+            'DELETE',
+            f"/table/{table_id}/record/{record_id}"
+        )
+        return True
+        
     def batch_create_records(
         self,
         table_id: str,
