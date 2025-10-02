@@ -310,7 +310,7 @@ class RecordManager:
             
         return self._http.request(
             'PATCH',
-            f"table/{table_id}/record/{record_id}",
+            f"/table/{table_id}/record/{record_id}",
             json=data
         )
         
@@ -338,7 +338,7 @@ class RecordManager:
         
         self._http.request(
             'DELETE',
-            f"table/{table_id}/record/{record_id}"
+            f"/table/{table_id}/record/{record_id}"
         )
         return True
         
@@ -428,7 +428,7 @@ class RecordManager:
             
         return self._http.request(
             'PATCH',
-            f"table/{table_id}/record",
+            f"/table/{table_id}/record",
             json=data
         )
         
