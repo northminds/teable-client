@@ -70,11 +70,11 @@ class TeableHttpClient:
         self._rate_limit_reset = None
         
     def request(
-        self,
-        method: str,
-        endpoint: str,
-        **kwargs: Any
-    ) -> Any:
+    self,
+    method: str,
+    endpoint: str,
+    **kwargs: Any
+) -> Any:
         """
         Make an HTTP request to the API.
         
@@ -96,11 +96,12 @@ class TeableHttpClient:
         
         # Handle request parameters
         if 'params' in kwargs:
-            # Handle both dict and list of tuples formats
+            # Check if params is already in tuple list format (pre-formatted)
             if isinstance(kwargs['params'], list):
-                # Already in tuple format for requests library, use as-is
+                # Already formatted as list of tuples, leave as-is for requests library
                 pass
             elif isinstance(kwargs['params'], dict):
+                # Need to process dict params
                 new_params = {}
                 for key, value in kwargs['params'].items():
                     if isinstance(value, str):
@@ -143,55 +144,7 @@ class TeableHttpClient:
                             new_params[key] = json.dumps(value)
                     else:
                         new_params[key] = value
-                kwargs['params'] = new_params
-        
-               # Handle request parameters
-        if 'params' in kwargs:
-            new_params = {}
-            for key, value in kwargs['params'].items():
-                if isinstance(value, str):
-                    # If it's a string, try to parse it as JSON
-                    try:
-                        parsed_value = json.loads(value)
-                        if key == 'search':
-                            new_params[key] = parsed_value if isinstance(parsed_value, list) else [parsed_value]
-                        elif key in ['recordIds', 'recordIds[]']:
-                            new_params['recordIds'] = parsed_value if isinstance(parsed_value, list) else [parsed_value]
-                        else:
-                            new_params[key] = value
-                    except json.JSONDecodeError:
-                        new_params[key] = value
-                elif isinstance(value, (list, dict)):
-                    # Handle non-string complex values
-                    if key == 'search':
-                        # Convert search object to array format
-                        if isinstance(value, list):
-                            if all(isinstance(item, dict) for item in value):
-                                # Convert dict format to array format
-                                search_array = []
-                                for item in value:
-                                    search_array.append([
-                                        str(item['value']),
-                                        str(item['field']),
-                                        str(item['exact']).lower()
-                                    ])
-                                new_params[key] = search_array
-                            else:
-                                # Already in array format
-                                new_params[key] = value
-                        else:
-                            new_params[key] = [value]
-                    elif key == 'filter':
-                        new_params[key] = json.dumps(value)
-                    elif key in ['recordIds', 'recordIds[]']:
-                        new_params['recordIds'] = value if isinstance(value, list) else [value]
-                    else:
-                        new_params[key] = json.dumps(value)
-                else:
-                    new_params[key] = value
-            
-            # Only process if params is a dict
-            if isinstance(kwargs['params'], dict):
+                
                 # Convert array parameters to proper format for requests library
                 final_params = []
                 for key, value in new_params.items():
@@ -202,7 +155,6 @@ class TeableHttpClient:
                     else:
                         final_params.append((key, value))
                 kwargs['params'] = final_params
-            # If params is already a list, leave it as-is
 
         # Convert json body if it contains lists or dicts
         if 'json' in kwargs:
