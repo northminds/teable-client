@@ -139,6 +139,18 @@ class TeableHttpClient:
                 else:
                     new_params[key] = value
             kwargs['params'] = new_params
+        
+        # Convert array parameters to proper format for requests library
+        if 'params' in kwargs:
+            final_params = []
+            for key, value in kwargs['params'].items():
+                if isinstance(value, list):
+                    # Send as multiple query params with same key
+                    for item in value:
+                        final_params.append((key, item))
+                else:
+                    final_params.append((key, value))
+            kwargs['params'] = final_params
 
         # Convert json body if it contains lists or dicts
         if 'json' in kwargs:
