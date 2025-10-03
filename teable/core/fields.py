@@ -121,12 +121,109 @@ class FieldManager:
         response = self._http.request('GET', f"/table/{table_id}/field")
         fields = [Field.from_api_response(f) for f in response]
         
-        # Update cache
         for field in fields:
             cache_key = f"{table_id}_{field.field_id}"
             self._cache.set('fields', cache_key, field)
             
         return fields
+        
+    def create_field(
+        self,
+        table_id: str,
+        field_type: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        db_field_name: Optional[str] = None,
+        unique: Optional[bool] = None,
+        not_null: Optional[bool] = None,
+        is_lookup: Optional[bool] = None,
+        lookup_options: Optional[Dict[str, Any]] = None,
+        options: Optional[Dict[str, Any]] = None,
+        ai_config: Optional[Dict[str, Any]] = None,
+        field_id: Optional[str] = None,
+        order: Optional[Dict[str, Any]] = None
+    ) -> Field:
+        """
+        Create a new field in a table.
+        
+        Args:
+            table_id: ID of the table
+            field_type: Field type (e.g., 'singleLineText', 'number', 'checkbox')
+            name: Optional display name for the field
+            description: Optional field description
+            db_field_name: Optional database column name
+            unique: Whether field values must be unique
+            not_null: Whether field cannot be null
+            is_lookup: Whether this is a lookup field
+            lookup_options: Configuration for lookup fields
+            options: Field type-specific options
+            ai_config: AI configuration for the field
+            field_id: Optional field ID to use (format: fld + 16 alphanumeric chars)
+            order: Optional ordering configuration with viewId and orderIndex
+            
+        Returns:
+            Field: The created field
+            
+        Raises:
+            ValidationError: If field parameters are invalid
+            APIError: If the creation fails
+        """
+        _validate_table_id(table_id)
+        _validate_field_type(field_type)
+        
+        if name is not None:
+            _validate_field_name(name)
+            
+        if db_field_name is not None and not db_field_name.strip():
+            raise ValidationError("Database field name cannot be empty")
+            
+        if field_id is not None:
+            _validate_field_id(field_id)
+            
+        if options is not None:
+            _validate_options(options)
+            
+        if lookup_options is not None:
+            _validate_options(lookup_options)
+            
+        if order is not None and not isinstance(order, dict):
+            raise ValidationError("Order must be a dictionary")
+            
+        data: Dict[str, Any] = {'type': field_type}
+        
+        if name is not None:
+            data['name'] = name
+        if description is not None:
+            data['description'] = description
+        if db_field_name is not None:
+            data['dbFieldName'] = db_field_name
+        if unique is not None:
+            data['unique'] = unique
+        if not_null is not None:
+            data['notNull'] = not_null
+        if is_lookup is not None:
+            data['isLookup'] = is_lookup
+        if lookup_options is not None:
+            data['lookupOptions'] = lookup_options
+        if options is not None:
+            data['options'] = options
+        if ai_config is not None:
+            data['aiConfig'] = ai_config
+        if field_id is not None:
+            data['id'] = field_id
+        if order is not None:
+            data['order'] = order
+            
+        response = self._http.request(
+            'POST',
+            f"/table/{table_id}/field",
+            json=data
+        )
+        
+        field = Field.from_api_response(response)
+        cache_key = f"{table_id}_{field.field_id}"
+        self._cache.set('fields', cache_key, field)
+        return field
         
     def update_field(
         self,

@@ -70,6 +70,65 @@ class Table:
         raise ResourceNotFoundError(
             "Field not found", "field", field_id
         )
+        
+    def create_field(
+        self,
+        field_type: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        db_field_name: Optional[str] = None,
+        unique: Optional[bool] = None,
+        not_null: Optional[bool] = None,
+        is_lookup: Optional[bool] = None,
+        lookup_options: Optional[Dict[str, Any]] = None,
+        options: Optional[Dict[str, Any]] = None,
+        ai_config: Optional[Dict[str, Any]] = None,
+        field_id: Optional[str] = None,
+        order: Optional[Dict[str, Any]] = None
+    ) -> Field:
+        """
+        Create a new field in the table.
+        
+        Args:
+            field_type: Field type (e.g., 'singleLineText', 'number', 'checkbox')
+            name: Optional display name for the field
+            description: Optional field description
+            db_field_name: Optional database column name
+            unique: Whether field values must be unique
+            not_null: Whether field cannot be null
+            is_lookup: Whether this is a lookup field
+            lookup_options: Configuration for lookup fields
+            options: Field type-specific options
+            ai_config: AI configuration for the field
+            field_id: Optional field ID to use (format: fld + 16 alphanumeric chars)
+            order: Optional ordering configuration with viewId and orderIndex
+            
+        Returns:
+            Field: The created field
+            
+        Raises:
+            ValidationError: If field parameters are invalid
+            APIError: If the creation fails
+        """
+        field = self._client.create_field(
+            self.table_id,
+            field_type,
+            name=name,
+            description=description,
+            db_field_name=db_field_name,
+            unique=unique,
+            not_null=not_null,
+            is_lookup=is_lookup,
+            lookup_options=lookup_options,
+            options=options,
+            ai_config=ai_config,
+            field_id=field_id,
+            order=order
+        )
+        
+        self._fields = None
+        
+        return field
 
     def get_view(self, view_id: str) -> View:
         """
